@@ -1,5 +1,43 @@
 #!/bin/bash
 
+secure_boot_nvidia(){
+    sudo dnf install -y kmodtool akmods mokutil openssl
+    sudo kmodgenca -a
+    sudo mokutil --import /etc/pki/akmods/certs/public_key.der
+#    systemctl reboot
+}
+
+
+install_omzsh() {
+    echo "Installing Oh My Zsh..."
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    echo "Oh My Zsh installation complete."
+}
+
+install_node_nvm() {
+    echo "Installing NVM (Node Version Manager)..."
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+    echo "NVM installation complete."
+}
+
+install_sdkman() {
+    echo "Installing SDKMAN (Java, Kotlin, Spark manager)..."
+    curl -s "https://get.sdkman.io" | bash
+    echo "SDKMAN installation complete."
+}
+
+enable_ubuntu_flatpak() {
+    echo "Enabling Flatpak support on Ubuntu..."
+    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    echo "Flatpak support enabled on Ubuntu."
+}
+
+enable_fedora_flatpak() {
+    echo "Enabling Flatpak support on Fedora..."
+    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    echo "Flatpak support enabled on Fedora."
+}
+
 ubuntu_setup() {
     echo "Updating package lists..."
     sudo apt update ; sudo apt full-upgrade -y
@@ -32,6 +70,7 @@ ubuntu_setup() {
         pandoc\
         texlive-latex-extra\
         flatpak\
+        libreoffice
 
     echo "Ubuntu setup complete."
 }
@@ -65,8 +104,11 @@ fedora_setup() {
         ranger\
         pandoc\
         texlive-scheme-full\
-        flatpak
-    
+        flatpak\
+        gnome-software-plugin-flatpak
+
+    # call flatpak setup for fedora
+    enable_fedora_flatpak
     echo "Fedora setup complete."
 }
 
@@ -90,12 +132,30 @@ elif [ "$PACKAGE_MANAGER" == "yum" ] || [ "$PACKAGE_MANAGER" == "dnf" ]; then
     fedora_setup
 fi
 
-# service wide setup
-# nvm for nodejs 
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+#install secureboot packages if on fedora
+if [ "$PACKAGE_MANAGER" == "yum" ] || [ "$PACKAGE_MANAGER" == "dnf" ]; then
+    read -p "Do you want to setup Secure Boot for NVIDIA drivers (y/n): "
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        secure_boot_nvidia
+    fi
+fi
 
-# sdkman for java, kotlin, spark
-curl -s "https://get.sdkman.io" | bash
+# install ohmyzsh
+read -p "Do you want to install Oh My Zsh? (y/n): "
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    install_omzsh
+fi
 
-#omz installer
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+# install nvm and sdkman
+read -p "Do you want to install nvm (Node Version Manager) (y/n): "
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    install_node_nvm
+fi
+
+read -p "Do you want to install SDKMAN (Java, Kotlin, Spark manager) (y/n): "
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    install_sdkman
+fi
+
+
+echo "Setup complete. Please restart your terminal."
